@@ -1,0 +1,84 @@
+[28-Sep-2026 07:18:16 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/journal_de_classe.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:56:53 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/journal_de_classe.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:10 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/journal_de_classe.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:12 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/journal_de_classe.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:19 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/journal_de_classe.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:20 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/journal_de_classe.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:24 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/journal_de_classe.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:27 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/fiche_des_prevision.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:28 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/fiche_des_prevision.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:31 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/fiche_des_prevision.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:31 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/cours_resume.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
+[28-Sep-2026 10:57:33 UTC] PHP Fatal error:  Uncaught mysqli_sql_exception: Too many connections in /home/cselmasombe/public_html/prof/includes/db.php:47
+Stack trace:
+#0 /home/cselmasombe/public_html/prof/includes/db.php(47): mysqli->__construct()
+#1 /home/cselmasombe/public_html/prof/includes/auth.php(25): require_once('/home/cselmasom...')
+#2 /home/cselmasombe/public_html/prof/doc_peda/fiche_des_prevision.php(5): require_once('/home/cselmasom...')
+#3 {main}
+  thrown in /home/cselmasombe/public_html/prof/includes/db.php on line 47
