@@ -53,11 +53,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_delete'])) {
 // 2) TRAITEMENT : ENREGISTREMENT GROUPÉ MULTI-CLASSES (SAISIE MULTIPLE DU JOUR)
 // -------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_add_batch'])) {
-    $jourDate      = trim((string)($_POST['jour_date'] ?? ''));
-    $targetClasses = $_POST['target_classes'] ?? [];
-    $coursIds      = $_POST['cours_id'] ?? [];
-    $matieres      = $_POST['matieres'] ?? [];
-    $notes         = $_POST['note'] ?? [];
+    $jourDate          = trim((string)($_POST['jour_date'] ?? ''));
+    $targetClasses     = $_POST['target_classes'] ?? [];
+    $numeroFiches      = $_POST['numero_fiche'] ?? [];
+    $coursIds          = $_POST['cours_id'] ?? [];
+    $sujets            = $_POST['sujet'] ?? [];
+    $methodes          = $_POST['methode'] ?? [];
+    $matieres          = $_POST['matieres'] ?? [];
+    $notes             = $_POST['note'] ?? [];
+    $observationProfs  = $_POST['observation_prof'] ?? [];
     
     // Filtrage de sécurité : ne garder que les classes effectivement affectées au professeur
     $allowedClasseIds = array_column($mesClasses, 'id');
@@ -76,9 +80,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_add_batch'])) 
         }
 
         foreach ($coursIds as $index => $cId) {
-            $coursId    = (int)$cId;
-            $matiereTxt = trim((string)($matieres[$index] ?? ''));
-            $noteTxt    = trim((string)($notes[$index] ?? ''));
+            $coursId       = (int)$cId;
+            $numFicheTxt   = trim((string)($numeroFiches[$index] ?? ''));
+            $sujetTxt      = trim((string)($sujets[$index] ?? ''));
+            $methodeTxt    = trim((string)($methodes[$index] ?? ''));
+            $matiereTxt    = trim((string)($matieres[$index] ?? ''));
+            $noteTxt       = trim((string)($notes[$index] ?? ''));
+            $obsProfTxt    = trim((string)($observationProfs[$index] ?? ''));
 
             if ($coursId > 0 && $matiereTxt !== '') {
                 $filename = null;
@@ -93,10 +101,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_add_batch'])) 
                 // Insertion de la leçon pour CHAQUE classe sélectionnée
                 foreach ($validClasses as $cDestId) {
                     $stmt = $con->prepare("
-                        INSERT INTO journal_classe (jour_date, prof_id, classe_id, cours_id, anneScolaire, matieres, note, piece_jointe, statut)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en attente')
+                        INSERT INTO journal_classe (numero_fiche, jour_date, prof_id, classe_id, cours_id, sujet, methode, anneScolaire, matieres, note, observation_prof, piece_jointe, statut)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'en attente')
                     ");
-                    $stmt->bind_param('siisssss', $jourDate, $agentId, $cDestId, $coursId, $anneeEnCours, $matiereTxt, $noteTxt, $filename);
+                    $stmt->bind_param('ssiiisssssss', $numFicheTxt, $jourDate, $agentId, $cDestId, $coursId, $sujetTxt, $methodeTxt, $anneeEnCours, $matiereTxt, $noteTxt, $obsProfTxt, $filename);
                     if ($stmt->execute()) {
                         $successCount++;
                     }
@@ -107,12 +115,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_add_batch'])) 
 
         if ($successCount > 0) {
             $_SESSION['msg_success'] = "{$successCount} entrée(s) consignée(s) avec succès pour le " . date('d/m/Y', strtotime($jourDate)) . " dans " . count($validClasses) . " classe(s).";
-            
-            // --- ENVOI DE L'EMAIL AUX GESTIONNAIRES ---
-            $sujetMail   = "Nouveau journal de classe soumis";
-            $contenuMail = "L'enseignant a rédigé " . $successCount . " matière(s) dans le journal de classe pour la date du " . date('d/m/Y', strtotime($jourDate)) . ".";
-            // sendMailToManagers($con, $agentId, $sujetMail, $contenuMail);
-
         } else {
             $_SESSION['msg_error'] = "Aucune matière valide n'a été remplie.";
         }
@@ -123,14 +125,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_add_batch'])) 
 }
 
 // -------------------------------------------------------------------------
-// 3) TRAITEMENT : MODIFICATION D'UNE ENTRÉE (DATE INCLUSE)
+// 3) TRAITEMENT : MODIFICATION D'UNE ENTRÉE
 // -------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit'])) {
-    $idEdit    = (int)($_POST['id_journal'] ?? 0);
-    $editDate  = trim((string)($_POST['edit_jour_date'] ?? ''));
-    $coursId   = (int)($_POST['edit_cours_id'] ?? 0);
-    $matieres  = trim((string)($_POST['edit_matieres'] ?? ''));
-    $note      = trim((string)($_POST['edit_note'] ?? ''));
+    $idEdit         = (int)($_POST['id_journal'] ?? 0);
+    $editNumFiche   = trim((string)($_POST['edit_numero_fiche'] ?? ''));
+    $editDate       = trim((string)($_POST['edit_jour_date'] ?? ''));
+    $coursId        = (int)($_POST['edit_cours_id'] ?? 0);
+    $sujet          = trim((string)($_POST['edit_sujet'] ?? ''));
+    $methode        = trim((string)($_POST['edit_methode'] ?? ''));
+    $matieres       = trim((string)($_POST['edit_matieres'] ?? ''));
+    $note           = trim((string)($_POST['edit_note'] ?? ''));
+    $observationProf= trim((string)($_POST['edit_observation_prof'] ?? ''));
     
     $stmtCheck = $con->prepare("SELECT piece_jointe, statut FROM journal_classe WHERE id = ? AND prof_id = ?");
     $stmtCheck->bind_param('ii', $idEdit, $agentId);
@@ -141,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit'])) {
     if (!$resCheck) {
         $_SESSION['msg_error'] = "Fiche introuvable ou accès non autorisé.";
     } elseif ($resCheck['statut'] === 'valider') {
-        $_SESSION['msg_error'] = "Impossible de modifier une fiche déjà validée.";
+        $_SESSION['msg_error'] = "Impossible de supprimer ou modifier une fiche déjà validée.";
     } elseif (empty($editDate) || empty($matieres) || $coursId <= 0) {
         $_SESSION['msg_error'] = "La date, le cours et la matière sont obligatoires.";
     } else {
@@ -157,14 +163,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit'])) {
             move_uploaded_file($tmpName, $uploadDir . $filename);
         }
 
-        $stmtUpd = $con->prepare("UPDATE journal_classe SET jour_date = ?, cours_id = ?, matieres = ?, note = ?, piece_jointe = ? WHERE id = ? AND prof_id = ?");
-        $stmtUpd->bind_param('sisssii', $editDate, $coursId, $matieres, $note, $filename, $idEdit, $agentId);
+        $stmtUpd = $con->prepare("UPDATE journal_classe SET numero_fiche = ?, jour_date = ?, cours_id = ?, sujet = ?, methode = ?, matieres = ?, note = ?, observation_prof = ?, piece_jointe = ? WHERE id = ? AND prof_id = ?");
+        $stmtUpd->bind_param('ssissssii', $editNumFiche, $editDate, $coursId, $sujet, $methode, $matieres, $note, $observationProf, $filename, $idEdit, $agentId);
         if ($stmtUpd->execute()) {
             $_SESSION['msg_success'] = "Leçon modifiée avec succès.";
-            
-            $sujetMail   = "Modification d'un journal de classe";
-            $contenuMail = "Une leçon du " . date('d/m/Y', strtotime($editDate)) . " a été mise à jour par l'enseignant.";
-            // sendMailToManagers($con, $agentId, $sujetMail, $contenuMail);
         }
         $stmtUpd->close();
     }
@@ -179,10 +181,8 @@ $msgError   = $_SESSION['msg_error'] ?? '';
 unset($_SESSION['msg_success'], $_SESSION['msg_error']);
 
 // -------------------------------------------------------------------------
-// 4) CHARGEMENT DES DONNÉES SANS DOUBLONS DE COURS
+// 4) CHARGEMENT DES COURS ET DU JOURNAL DU JOUR
 // -------------------------------------------------------------------------
-
-// Dédoublonnage des intitulés de cours avec GROUP BY
 $coursList = [];
 $stmt = $con->prepare("
     SELECT MIN(co.id) AS id, co.intitule
@@ -197,7 +197,6 @@ $stmt->execute();
 $coursList = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Chargement des leçons enregistrées aujourd'hui
 $today = date('Y-m-d');
 if ($classeId > 0) {
     $stmt = $con->prepare("
@@ -235,27 +234,20 @@ include __DIR__.'/../layout/navbar.php';
             <small class="text-muted">Consignez toutes vos leçons données aujourd'hui sur un seul formulaire.</small>
         </div>
         <div>
-            <button type="button" class="btn btn-info text-white btn-sm me-2 fw-bold" data-bs-toggle="modal"
-                data-bs-target="#aideModal">
-                💡 Revoir l'explication
-            </button>
             <a href="historique_journal_de_classe.php" class="btn btn-outline-primary btn-sm fw-bold">
                 📜 Historique complet
             </a>
         </div>
     </div>
 
-    <!-- Alertes -->
     <?php if (!empty($msgSuccess)): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <?= e($msgSuccess) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <?= e($msgSuccess) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <?php endif; ?>
     <?php if (!empty($msgError)): ?>
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <?= e($msgError) ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <?= e($msgError) ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     <?php endif; ?>
 
@@ -264,7 +256,7 @@ include __DIR__.'/../layout/navbar.php';
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
             <span class="fw-bold">✏️ Journal du jour (<?= date('d/m/Y') ?>)</span>
             <button type="button" class="btn btn-light btn-sm fw-bold text-primary" id="add-row-btn">
-                ➕ Ajouter un cours
+                ➕ Ajouter une ligne
             </button>
         </div>
         <div class="card-body p-3">
@@ -272,34 +264,32 @@ include __DIR__.'/../layout/navbar.php';
                 <input type="hidden" name="action_add_batch" value="1">
 
                 <div class="row mb-3">
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold">Date du journal <span class="text-danger">*</span></label>
-                        <input type="date" name="jour_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
-                    </div>
+                    <div class="col-md-12">
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label fw-bold">Date du journal <span class="text-danger">*</span></label>
+                            <input type="date" name="jour_date" class="form-control" value="<?= date('Y-m-d') ?>"
+                                required>
+                        </div>
 
-                    <!-- SÉLECTION MULTIPLE DES CLASSES AFFECTÉES -->
-                    <div class="col-md-9">
                         <label class="form-label fw-bold">
                             Envoyer aux classe(s) <span class="text-danger">*</span>
-                            <small class="text-muted fw-normal">(Seules vos classes affectées sont listées)</small>
                         </label>
                         <div class="d-flex flex-wrap gap-2 p-2 border rounded bg-light">
                             <?php if (!empty($mesClasses)): ?>
-                                <?php foreach ($mesClasses as $cls): ?>
-                                    <div class="form-check form-check-inline m-0 me-3">
-                                        <input class="form-check-input" type="checkbox" name="target_classes[]" 
-                                               value="<?= (int)$cls['id'] ?>" id="class_chk_<?= (int)$cls['id'] ?>"
-                                               <?= ((int)$cls['id'] === $classeId) ? 'checked' : '' ?>>
-                                        <label class="form-check-label fw-bold text-dark" for="class_chk_<?= (int)$cls['id'] ?>">
-                                            <?= e($cls['description']) ?> 
-                                            <?php if (!empty($cls['cycle_desc'])): ?>
-                                                <small class="text-muted">(<?= e($cls['cycle_desc']) ?>)</small>
-                                            <?php endif; ?>
-                                        </label>
-                                    </div>
-                                <?php endforeach; ?>
+                            <?php foreach ($mesClasses as $cls): ?>
+                            <div class="form-check form-check-inline m-0 me-3">
+                                <input class="form-check-input" type="checkbox" name="target_classes[]"
+                                    value="<?= (int)$cls['id'] ?>" id="class_chk_<?= (int)$cls['id'] ?>"
+                                    data-cycle="<?= strtolower(e($cls['cycle_desc'] ?? '')) ?>"
+                                    <?= ((int)$cls['id'] === $classeId) ? 'checked' : '' ?>>
+                                <label class="form-check-label fw-bold text-dark"
+                                    for="class_chk_<?= (int)$cls['id'] ?>">
+                                    <?= e($cls['description']) ?> <?= e($cls['cycle_desc']) ?>
+                                </label>
+                            </div>
+                            <?php endforeach; ?>
                             <?php else: ?>
-                                <span class="text-danger small">Aucune classe affectée à votre compte.</span>
+                            <span class="text-danger small">Aucune classe affectée à votre compte.</span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -309,39 +299,42 @@ include __DIR__.'/../layout/navbar.php';
                     <table class="table table-bordered align-middle" id="journal-table">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 25%;">Cours / Branche <span class="text-danger">*</span></th>
-                                <th style="width: 35%;">Matière dispensée / Sujet vu <span class="text-danger">*</span></th>
-                                <th style="width: 20%;">Remarques / Devoirs</th>
-                                <th style="width: 10%;">Support / PJ</th>
-                                <th style="width: 10%;" class="text-center">Action</th>
+                                <th style="width: 11%;" class="col-secondaire">N° Fiche</th>
+                                <th style="width: 15%;">Cours / Branche <span class="text-danger">*</span></th>
+                                <th class="col-secondaire">Sujet</th>
+                                <th class="col-secondaire">Méthode</th>
+                                <th>Matière dispensée <span class="text-danger">*</span></th>
+                                <th>Remarques / Obs.</th>
+                                <th>Obs. Prof</th>
+                                <th>Support / PJ</th>
+                                <th class="text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody id="journal-tbody">
                             <tr class="journal-row">
+                                <td class="col-secondaire"><input type="text" name="numero_fiche[]" class="form-control"
+                                        placeholder="N° Fiche"></td>
                                 <td>
                                     <select name="cours_id[]" class="form-select" required>
-                                        <option value="">-- Choisir un cours --</option>
+                                        <option value="">-- Choisir --</option>
                                         <?php foreach ($coursList as $co): ?>
                                         <option value="<?= (int)$co['id'] ?>"><?= e($co['intitule']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </td>
-                                <td>
-                                    <textarea name="matieres[]" class="form-control" rows="2"
-                                        placeholder="Ex: Additions de fractions, vocabulaire..." required></textarea>
-                                </td>
-                                <td>
-                                    <input type="text" name="note[]" class="form-control"
-                                        placeholder="Ex: Devoir p.45, contrôles...">
-                                </td>
-                                <td>
-                                    <input type="file" name="piece_jointe[]" class="form-control form-control-sm">
-                                </td>
+                                <td class="col-secondaire"><input type="text" name="sujet[]" class="form-control"
+                                        placeholder="Sujet"></td>
+                                <td class="col-secondaire"><input type="text" name="methode[]" class="form-control"
+                                        placeholder="Méthode"></td>
+                                <td><textarea name="matieres[]" class="form-control" rows="2"
+                                        placeholder="Contenu de la leçon..." required></textarea></td>
+                                <td><input type="text" name="note[]" class="form-control" placeholder="Devoirs..."></td>
+                                <td><input type="text" name="observation_prof[]" class="form-control"
+                                        placeholder="Obs. prof..."></td>
+                                <td><input type="file" name="piece_jointe[]" class="form-control form-control-sm"></td>
                                 <td class="text-center">
-                                    <div class="d-flex justify-content-center align-items-center gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"
-                                            title="Supprimer la ligne">❌</button>
-                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"
+                                        title="Supprimer">❌</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -350,7 +343,7 @@ include __DIR__.'/../layout/navbar.php';
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <button type="button" class="btn btn-outline-secondary btn-sm" id="add-row-btn-bottom">
-                        ➕ Ajouter une autre matière
+                        ➕ Ajouter une autre ligne
                     </button>
                     <button type="submit" class="btn btn-success fw-bold px-4">
                         💾 Enregistrer tout le journal du jour
@@ -371,10 +364,11 @@ include __DIR__.'/../layout/navbar.php';
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <!-- <th>Classe</th> -->
+                            <th>N° Fiche</th>
                             <th>Cours</th>
+                            <th>Sujet / Méthode</th>
                             <th>Matière dispensée</th>
-                            <th>Remarques</th>
+                            <th>Remarques / Obs.</th>
                             <th>Pièce jointe</th>
                             <th class="text-center">Statut</th>
                             <th class="text-end">Actions</th>
@@ -383,17 +377,30 @@ include __DIR__.'/../layout/navbar.php';
                     <tbody>
                         <?php foreach ($fichesDuJour as $f): ?>
                         <tr>
-                            <!-- <td><span class="badge bg-secondary"><?= e($f['classe_nom']) ?></span></td> -->
+                            <td>
+                                <?php if (!empty($f['numero_fiche'])): ?>
+                                <span class="badge bg-dark"><?= e($f['numero_fiche']) ?></span>
+                                <?php else: ?>
+                                <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
                             <td class="fw-bold text-primary"><?= e($f['cours_nom']) ?></td>
+                            <td>
+                                <strong>Sujet:</strong> <?= e($f['sujet'] ?: '—') ?><br>
+                                <small class="text-muted">MÉTHODE: <?= e($f['methode'] ?: '—') ?></small>
+                            </td>
                             <td><?= nl2br(e($f['matieres'])) ?></td>
-                            <td><?= e($f['note'] ?: '—') ?></td>
+                            <td>
+                                <?= e($f['note'] ?: '—') ?>
+                                <?php if (!empty($f['observation_prof'])): ?>
+                                <br><small class="text-info">Obs: <?= e($f['observation_prof']) ?></small>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <?php if (!empty($f['piece_jointe'])): ?>
                                 <a href="/uploads/attachement_journal_de_class/<?= e($f['piece_jointe']) ?>"
                                     target="_blank" class="btn btn-sm btn-outline-primary">📎 Fichier</a>
-                                <?php else: ?>
-                                <span class="text-muted">—</span>
-                                <?php endif; ?>
+                                <?php else: ?><span class="text-muted">—</span><?php endif; ?>
                             </td>
                             <td class="text-center">
                                 <?php if (($f['statut'] ?? 'en attente') === 'valider'): ?>
@@ -403,19 +410,18 @@ include __DIR__.'/../layout/navbar.php';
                                 <?php endif; ?>
                             </td>
                             <td class="text-end">
-                                <a href="cours_resume.php?journal=<?= (int)$f['id'] ?>"
-                                    class="btn btn-sm btn-primary me-1" title="Voir / Éditer le résumé">
-                                    📄 Faire un résumé
-                                </a>
-
                                 <?php if (($f['statut'] ?? 'en attente') !== 'valider'): ?>
                                 <button type="button" class="btn btn-sm btn-outline-secondary me-1 btn-edit"
                                     data-id="<?= (int)$f['id'] ?>"
+                                    data-numerofiche="<?= htmlspecialchars($f['numero_fiche'] ?? '', ENT_QUOTES) ?>"
                                     data-date="<?= htmlspecialchars($f['jour_date'], ENT_QUOTES) ?>"
                                     data-cours="<?= (int)$f['cours_id'] ?>"
+                                    data-sujet="<?= htmlspecialchars($f['sujet'] ?? '', ENT_QUOTES) ?>"
+                                    data-methode="<?= htmlspecialchars($f['methode'] ?? '', ENT_QUOTES) ?>"
                                     data-matieres="<?= htmlspecialchars($f['matieres'], ENT_QUOTES) ?>"
-                                    data-note="<?= htmlspecialchars($f['note'], ENT_QUOTES) ?>" data-bs-toggle="modal"
-                                    data-bs-target="#editModal" title="Modifier">
+                                    data-note="<?= htmlspecialchars($f['note'] ?? '', ENT_QUOTES) ?>"
+                                    data-observation_prof="<?= htmlspecialchars($f['observation_prof'] ?? '', ENT_QUOTES) ?>"
+                                    data-bs-toggle="modal" data-bs-target="#editModal" title="Modifier">
                                     ✏️
                                 </button>
                                 <form method="post" class="d-inline"
@@ -439,8 +445,9 @@ include __DIR__.'/../layout/navbar.php';
     <?php endif; ?>
 </div>
 
+<!-- MODAL DE MODIFICATION -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <form method="post" enctype="multipart/form-data" class="modal-content">
             <input type="hidden" name="action_edit" value="1">
             <input type="hidden" name="id_journal" id="modal_edit_id" value="">
@@ -450,9 +457,15 @@ include __DIR__.'/../layout/navbar.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Date de la leçon</label>
-                    <input type="date" name="edit_jour_date" id="modal_edit_date" class="form-control" required>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">N° Fiche</label>
+                        <input type="text" name="edit_numero_fiche" id="modal_edit_numero_fiche" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Date de la leçon</label>
+                        <input type="date" name="edit_jour_date" id="modal_edit_date" class="form-control" required>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Cours / Branche</label>
@@ -463,14 +476,31 @@ include __DIR__.'/../layout/navbar.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Sujet</label>
+                        <input type="text" name="edit_sujet" id="modal_edit_sujet" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Méthode</label>
+                        <input type="text" name="edit_methode" id="modal_edit_methode" class="form-control">
+                    </div>
+                </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Matière dispensée</label>
                     <textarea name="edit_matieres" id="modal_edit_matieres" class="form-control" rows="3"
                         required></textarea>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Remarques / Devoirs</label>
-                    <input type="text" name="edit_note" id="modal_edit_note" class="form-control">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Remarques / Devoirs</label>
+                        <input type="text" name="edit_note" id="modal_edit_note" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Observation Prof</label>
+                        <input type="text" name="edit_observation_prof" id="modal_edit_observation_prof"
+                            class="form-control">
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Remplacer la pièce jointe (Optionnel)</label>
@@ -492,14 +522,57 @@ document.addEventListener('DOMContentLoaded', function() {
     const addBtn = document.getElementById('add-row-btn');
     const addBtnBottom = document.getElementById('add-row-btn-bottom');
 
+    function updateFieldsVisibility() {
+        const checkboxes = document.querySelectorAll('input[name="target_classes[]"]:checked');
+        let hideSecondaryFields = false;
+
+        if (checkboxes.length > 0) {
+            let onlyPrimaryOrMappernal = true;
+            checkboxes.forEach(chk => {
+                const cycle = chk.getAttribute('data-cycle') || '';
+                if (cycle.includes('secondaire') || cycle.includes('humanite') || cycle.includes(
+                        'humanités') || cycle.includes('eb')) {
+                    onlyPrimaryOrMappernal = false;
+                }
+            });
+            if (onlyPrimaryOrMappernal) {
+                checkboxes.forEach(chk => {
+                    const cycle = chk.getAttribute('data-cycle') || '';
+                    if (!cycle.includes('primaire') && !cycle.includes('maternel')) {
+                        onlyPrimaryOrMappernal = false;
+                    }
+                });
+            }
+            if (onlyPrimaryOrMappernal) {
+                hideSecondaryFields = true;
+            }
+        }
+
+        document.querySelectorAll('.col-secondaire').forEach(el => {
+            el.style.display = hideSecondaryFields ? 'none' : '';
+        });
+    }
+
+    const classCheckboxes = document.querySelectorAll('input[name="target_classes[]"]');
+    classCheckboxes.forEach(chk => {
+        chk.addEventListener('change', updateFieldsVisibility);
+    });
+
+    updateFieldsVisibility();
+
     function createNewRow() {
         const firstRow = tbody.querySelector('.journal-row');
         const newRow = firstRow.cloneNode(true);
+
         newRow.querySelectorAll('input, textarea, select').forEach(input => {
-            if (input.tagName === 'SELECT') input.selectedIndex = 0;
-            else input.value = '';
+            if (input.tagName === 'SELECT') {
+                input.selectedIndex = 0;
+            } else {
+                input.value = '';
+            }
         });
         tbody.appendChild(newRow);
+        updateFieldsVisibility();
     }
 
     if (addBtn) addBtn.addEventListener('click', createNewRow);
@@ -519,11 +592,18 @@ document.addEventListener('DOMContentLoaded', function() {
     editBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             document.getElementById('modal_edit_id').value = this.getAttribute('data-id');
+            document.getElementById('modal_edit_numero_fiche').value = this.getAttribute(
+                'data-numerofiche');
             document.getElementById('modal_edit_date').value = this.getAttribute('data-date');
             document.getElementById('modal_edit_cours').value = this.getAttribute('data-cours');
+            document.getElementById('modal_edit_sujet').value = this.getAttribute('data-sujet');
+            document.getElementById('modal_edit_methode').value = this.getAttribute(
+                'data-methode');
             document.getElementById('modal_edit_matieres').value = this.getAttribute(
                 'data-matieres');
             document.getElementById('modal_edit_note').value = this.getAttribute('data-note');
+            document.getElementById('modal_edit_observation_prof').value = this.getAttribute(
+                'data-observation_prof');
         });
     });
 });

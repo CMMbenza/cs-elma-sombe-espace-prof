@@ -67,7 +67,7 @@ ORDER BY c.description ASC";
 /** Détails complets de la classe courante (classe + cycle) */
 function current_classe_meta(mysqli $con, ?int $classeId): ?array {
   if (!$classeId) return null;
-  $sql = "SELECT c.id, c.description, cy.id AS cycle_id, cy.description AS cycle_desc
+  $sql = "SELECT c.id, c.description, cy.id AS cycle_id, cy.description AS cycle_desc, CONCAT(c.description, ' ' ,cy.description) AS classe_cycle
           FROM classe c
           JOIN cycle cy ON cy.id=c.cycle
           WHERE c.id=?";

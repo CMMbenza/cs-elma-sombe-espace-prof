@@ -302,3 +302,113 @@ ALTER TABLE `resume_cours` ADD COLUMN `piece_jointe` VARCHAR(255) DEFAULT NULL A
 
 23.09.2026 :
 ALTER TABLE `users` ADD COLUMN `email` VARCHAR(150) NULL AFTER `password`;
+
+#30.10.2026
+-- Table principale des fiches pédagogiques APS
+CREATE TABLE IF NOT EXISTS fiches_aps(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    fiche_num VARCHAR(50) NOT NULL,
+    date_tache DATE DEFAULT NULL,
+    heure TIME DEFAULT NULL,
+    noms VARCHAR(255) DEFAULT NULL,
+    branche VARCHAR(255) DEFAULT NULL,
+    fonction VARCHAR(255) DEFAULT NULL,
+    competence_integree TEXT DEFAULT NULL,
+    competence_visee TEXT DEFAULT NULL,
+    sujet_revision TEXT DEFAULT NULL,
+    sujet_lecon TEXT DEFAULT NULL,
+    objectifs_pedagogiques TEXT DEFAULT NULL,
+    materiel_didactique TEXT DEFAULT NULL,
+    reference_bibliographique TEXT DEFAULT NULL,
+    methode_rappel TEXT DEFAULT NULL,
+    matiere_rappel TEXT DEFAULT NULL,
+    methode_motivation TEXT DEFAULT NULL,
+    matiere_motivation TEXT DEFAULT NULL,
+    methode_annonce TEXT DEFAULT NULL,
+    matiere_annonce TEXT DEFAULT NULL,
+    methode_developpement TEXT DEFAULT NULL,
+    matiere_developpement TEXT DEFAULT NULL,
+    methode_synthese TEXT DEFAULT NULL,
+    matiere_synthese TEXT DEFAULT NULL,
+    methode_application TEXT DEFAULT NULL,
+    matiere_application TEXT DEFAULT NULL,
+    methode_tache TEXT DEFAULT NULL,
+    matiere_tache TEXT DEFAULT NULL,
+    commentaires TEXT DEFAULT NULL,
+    piece_jointe VARCHAR(255) DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+-- Table de liaison (car une fiche peut appartenir à plusieurs classes)
+CREATE TABLE IF NOT EXISTS fiche_classes(
+    fiche_id INT NOT NULL,
+    classe_id INT NOT NULL,
+    PRIMARY KEY(fiche_id, classe_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `fiches_das` (
+ `id` int(11) NOT NULL AUTO_INCREMENT,
+ `fiche_num` varchar(50) NOT NULL,
+ `sous_domaine` varchar(255) DEFAULT NULL,
+ `discipline` varchar(255) DEFAULT NULL,
+ `titre` varchar(255) DEFAULT NULL,
+ `sous_titre` varchar(255) DEFAULT NULL,
+ `code` varchar(100) DEFAULT NULL,
+ `enseignant` varchar(255) DEFAULT NULL,
+ `date_tache` date DEFAULT NULL,
+ `duree` varchar(50) DEFAULT NULL,
+ `reference` varchar(255) DEFAULT NULL,
+ `madi` varchar(255) DEFAULT NULL,
+ `competence` text DEFAULT NULL,
+ `exemple_situation` text DEFAULT NULL,
+ `activite_ens_verif` text DEFAULT NULL,
+ `activite_eleve_verif` text DEFAULT NULL,
+ `activite_ens_motivation` text DEFAULT NULL,
+ `activite_eleve_motivation` text DEFAULT NULL,
+ `activite_ens_principal` text DEFAULT NULL,
+ `activite_eleve_principal` text DEFAULT NULL,
+ `activite_ens_synthese` text DEFAULT NULL,
+ `activite_eleve_synthese` text DEFAULT NULL,
+ `activite_ens_eval` text DEFAULT NULL,
+ `activite_eleve_eval` text DEFAULT NULL,
+ `activite_ens_sit_similaire` text DEFAULT NULL,
+ `activite_eleve_sit_similaire` text DEFAULT NULL,
+ `commentaires` text DEFAULT NULL,
+ `piece_jointe` varchar(255) DEFAULT NULL,
+ `created_at` datetime DEFAULT current_timestamp(),
+ PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE IF NOT EXISTS `fiche_das_classes` (
+ `fiche_id` int(11) NOT NULL,
+ `classe_id` int(11) NOT NULL,
+ PRIMARY KEY (`fiche_id`,`classe_id`),
+ KEY `classe_id` (`classe_id`),
+ CONSTRAINT `fk_das_fiche` FOREIGN KEY (`fiche_id`) REFERENCES `fiches_das` (`id`) ON DELETE CASCADE,
+ CONSTRAINT `fk_das_classe` FOREIGN KEY (`classe_id`) REFERENCES `classe` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `fiches_previsions_commerciales` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `agent_id` int(11) NOT NULL,
+  `branche` varchar(255) DEFAULT NULL,
+  `classe_id` int(11) DEFAULT NULL,
+  `fonction` varchar(255) DEFAULT NULL,
+  `competence_integree` text DEFAULT NULL,
+  `lignes_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`lignes_data`)),
+  `commentaires` text DEFAULT NULL,
+  `piece_jointe` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `agent_id` (`agent_id`),
+  KEY `classe_id` (`classe_id`),
+  CONSTRAINT `fk_fpc_agent` FOREIGN KEY (`agent_id`) REFERENCES `agent` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_fpc_classe` FOREIGN KEY (`classe_id`) REFERENCES `classe` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+ALTER TABLE `journal_classe` 
+ADD COLUMN `observation_prof` text DEFAULT NULL AFTER `note`,
+ADD COLUMN `heure` time DEFAULT NULL AFTER `jour_date`,
+ADD COLUMN `sujet` varchar(255) DEFAULT NULL AFTER `cours_id`,
+ADD COLUMN `methode` text DEFAULT NULL AFTER `sujet`;
+ALTER TABLE `journal_classe` 
+ADD COLUMN `numero_fiche` varchar(50) DEFAULT NULL AFTER `id`;

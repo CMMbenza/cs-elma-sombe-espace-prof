@@ -12,6 +12,13 @@ $prof     = current_prof();
 $agentId  = (int)($prof['id'] ?? 0);
 $classeId = (int)get_current_classe();
 
+// Récupération des métadonnées de la classe courante pour détecter le cycle
+$classeMeta = $classeId ? current_classe_meta($con, $classeId) : null;
+$cycleDesc  = strtolower(trim($classeMeta['cycle_desc'] ?? ''));
+
+// Détermination si on doit masquer les champs (vrai si primaire ou maternel uniquement)
+$isPrimaireOuMaternel = (strpos($cycleDesc, 'primaire') !== false || strpos($cycleDesc, 'maternel') !== false);
+
 $uploadDir = __DIR__.'/../../uploads/attachement_journal_de_class/';
 
 if (!$classeId) {
@@ -25,14 +32,18 @@ if (!$classeId) {
 }
 
 // -------------------------------------------------------------------------
-// 1) TRAITEMENT : MODIFICATION D'UNE ENTRÉE (DATE INCLUSE)
+// 1) TRAITEMENT : MODIFICATION D'UNE ENTRÉE
 // -------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit'])) {
-    $idEdit   = (int)($_POST['id_journal'] ?? 0);
-    $editDate = trim((string)($_POST['edit_jour_date'] ?? ''));
-    $coursId  = (int)($_POST['edit_cours_id'] ?? 0);
-    $matieres = trim((string)($_POST['edit_matieres'] ?? ''));
-    $note     = trim((string)($_POST['edit_note'] ?? ''));
+    $idEdit         = (int)($_POST['id_journal'] ?? 0);
+    $editDate       = trim((string)($_POST['edit_jour_date'] ?? ''));
+    $coursId        = (int)($_POST['edit_cours_id'] ?? 0);
+    $sujet          = trim((string)($_POST['edit_sujet'] ?? ''));
+    $methode        = trim((string)($_POST['edit_methode'] ?? ''));
+    $matieres       = trim((string)($_POST['edit_matieres'] ?? ''));
+    $note           = trim((string)($_POST['edit_note'] ?? ''));
+    $observationProf= trim((string)($_POST['edit_observation_prof'] ?? ''));
+    $editNumFiche   = trim((string)($_POST['edit_numero_fiche'] ?? ''));
 
     $stmtCheck = $con->prepare("SELECT piece_jointe, statut FROM journal_classe WHERE id = ? AND prof_id = ?");
     $stmtCheck->bind_param('ii', $idEdit, $agentId);
@@ -59,15 +70,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit'])) {
             move_uploaded_file($tmpName, $uploadDir . $filename);
         }
 
-        $stmtUpd = $con->prepare("UPDATE journal_classe SET jour_date = ?, cours_id = ?, matieres = ?, note = ?, piece_jointe = ? WHERE id = ? AND prof_id = ?");
-        $stmtUpd->bind_param('sisssii', $editDate, $coursId, $matieres, $note, $filename, $idEdit, $agentId);
+        $stmtUpd = $con->prepare("UPDATE journal_classe SET numero_fiche = ?, jour_date = ?, cours_id = ?, sujet = ?, methode = ?, matieres = ?, note = ?, observation_prof = ?, piece_jointe = ? WHERE id = ? AND prof_id = ?");
+        $stmtUpd->bind_param('ssissssii', $editNumFiche, $editDate, $coursId, $sujet, $methode, $matieres, $note, $observationProf, $filename, $idEdit, $agentId);
         if ($stmtUpd->execute()) {
             $_SESSION['msg_success'] = "Leçon mise à jour avec succès.";
         }
         $stmtUpd->close();
     }
 
-    header("Location: " . $_SERVER['REQUEST_URI']);
+    header("Location: " . $_SERVER['PHP_SELF']);
     exit;
 }
 
@@ -99,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_delete'])) {
         $stmtDel->close();
     }
 
-    header("Location: " . $_SERVER['REQUEST_URI']);
+    header("Location: " . $_SERVER['PHP_SELF']);
     exit;
 }
 
@@ -170,9 +181,10 @@ include __DIR__.'/../layout/header.php';
 include __DIR__.'/../layout/navbar.php';
 ?>
 
-<div class="container mt-3 py-2">
+<div class="container-fluid px-4 mt-3 py-2">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h5 mb-0 fw-bold">📜 Historique complet des journaux de classe</h1>
+        <h1 class="h5 mb-0 fw-bold">📜 Historique complet des journaux de classe
+            (<?= e($classeMeta['classe_cycle'] ?? '' ) ?>) </h1>
         <a href="journal_de_classe.php" class="btn btn-secondary btn-md">
             ← Saisir le journal du jour
         </a>
@@ -257,9 +269,16 @@ include __DIR__.'/../layout/navbar.php';
                     <thead class="table-light">
                         <tr>
                             <th>Date</th>
-                            <th>Cours</th>
+                            <?php if (!$isPrimaireOuMaternel): ?>
+                            <th>N° Fiche</th>
+                            <?php endif; ?>
+                            <th>Cours / Branche</th>
+                            <?php if (!$isPrimaireOuMaternel): ?>
+                            <th>Sujet / Méthode</th>
+                            <?php endif; ?>
                             <th>Matière dispensée</th>
-                            <th>Notes / Remarques</th>
+                            <th>Remarques / Devoirs</th>
+                            <th>Observation Prof</th>
                             <th>Pièce jointe</th>
                             <th class="text-center">Statut</th>
                             <th class="text-end">Actions</th>
@@ -273,14 +292,30 @@ include __DIR__.'/../layout/navbar.php';
                                     <?= date('d/m/Y', strtotime($f['jour_date'])) ?>
                                 </span>
                             </td>
+                            <?php if (!$isPrimaireOuMaternel): ?>
+                            <td>
+                                <?php if (!empty($f['numero_fiche'])): ?>
+                                <span class="badge bg-dark"><?= e($f['numero_fiche']) ?></span>
+                                <?php else: ?>
+                                <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <?php endif; ?>
                             <td><strong><?= e($f['cours_nom']) ?></strong></td>
+                            <?php if (!$isPrimaireOuMaternel): ?>
+                            <td>
+                                <strong>Sujet:</strong> <?= e($f['sujet'] ?: '—') ?><br>
+                                <small class="text-muted">MÉTHODE: <?= e($f['methode'] ?: '—') ?></small>
+                            </td>
+                            <?php endif; ?>
                             <td><?= nl2br(e($f['matieres'])) ?></td>
                             <td><?= e($f['note'] ?: '—') ?></td>
+                            <td><?= e($f['observation_prof'] ?: '—') ?></td>
                             <td>
                                 <?php if (!empty($f['piece_jointe'])): ?>
                                 <a href="/uploads/attachement_journal_de_class/<?= e($f['piece_jointe']) ?>"
                                     target="_blank" class="btn btn-sm btn-outline-primary">
-                                    📎 Ouvrir PJ
+                                    📎 Fichier
                                 </a>
                                 <?php else: ?>
                                 <span class="text-muted">—</span>
@@ -288,34 +323,38 @@ include __DIR__.'/../layout/navbar.php';
                             </td>
                             <td class="text-center">
                                 <?php
-                                        $statut = $f['statut'] ?? 'en attente';
-                                        switch ($statut) {
-                                            case 'valider':
-                                                echo '<span class="badge bg-success">Validé</span>';
-                                                break;
-                                            case 'rejeter':
-                                                echo '<span class="badge bg-danger">Rejeté</span>';
-                                                break;
-                                            case 'en attente':
-                                            default:
-                                                echo '<span class="badge bg-warning text-dark">En attente</span>';
-                                                break;
-                                        }
-                                        ?>
+                                $statut = $f['statut'] ?? 'en attente';
+                                switch ($statut) {
+                                    case 'valider':
+                                        echo '<span class="badge bg-success">Validé</span>';
+                                        break;
+                                    case 'rejeter':
+                                        echo '<span class="badge bg-danger">Rejeté</span>';
+                                        break;
+                                    case 'en attente':
+                                    default:
+                                        echo '<span class="badge bg-warning text-dark">En attente</span>';
+                                        break;
+                                }
+                                ?>
                             </td>
                             <td class="text-end">
                                 <a href="cours_resume.php?journal=<?= (int)$f['id'] ?>"
                                     class="btn btn-sm btn-primary me-1" title="Voir / Éditer le résumé">
-                                    📄 Faire un résumé
+                                    📄 Résumé
                                 </a>
                                 <?php if (($f['statut'] ?? 'en attente') !== 'valider'): ?>
                                 <button type="button" class="btn btn-sm btn-outline-secondary me-1 btn-edit"
                                     data-id="<?= (int)$f['id'] ?>"
                                     data-date="<?= htmlspecialchars($f['jour_date'], ENT_QUOTES) ?>"
                                     data-cours="<?= (int)$f['cours_id'] ?>"
+                                    data-sujet="<?= htmlspecialchars($f['sujet'] ?? '', ENT_QUOTES) ?>"
+                                    data-methode="<?= htmlspecialchars($f['methode'] ?? '', ENT_QUOTES) ?>"
                                     data-matieres="<?= htmlspecialchars($f['matieres'], ENT_QUOTES) ?>"
-                                    data-note="<?= htmlspecialchars($f['note'], ENT_QUOTES) ?>" data-bs-toggle="modal"
-                                    data-bs-target="#editModal" title="Modifier">
+                                    data-note="<?= htmlspecialchars($f['note'] ?? '', ENT_QUOTES) ?>"
+                                    data-observation_prof="<?= htmlspecialchars($f['observation_prof'] ?? '', ENT_QUOTES) ?>"
+                                    data-numerofiche="<?= htmlspecialchars($f['numero_fiche'] ?? '', ENT_QUOTES) ?>"
+                                    data-bs-toggle="modal" data-bs-target="#editModal" title="Modifier">
                                     ✏️
                                 </button>
                                 <form method="post" class="d-inline"
@@ -341,7 +380,7 @@ include __DIR__.'/../layout/navbar.php';
 
 <!-- MODAL DE MODIFICATION -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <form method="post" enctype="multipart/form-data" class="modal-content">
             <input type="hidden" name="action_edit" value="1">
             <input type="hidden" name="id_journal" id="modal_edit_id" value="">
@@ -351,9 +390,17 @@ include __DIR__.'/../layout/navbar.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
             </div>
             <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Date du journal</label>
-                    <input type="date" name="edit_jour_date" id="modal_edit_date" class="form-control" required>
+                <div class="row mb-3">
+                    <?php if (!$isPrimaireOuMaternel): ?>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">N° Fiche</label>
+                        <input type="text" name="edit_numero_fiche" id="modal_edit_numero_fiche" class="form-control">
+                    </div>
+                    <?php endif; ?>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Date de la leçon</label>
+                        <input type="date" name="edit_jour_date" id="modal_edit_date" class="form-control" required>
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Cours / Branche</label>
@@ -364,14 +411,33 @@ include __DIR__.'/../layout/navbar.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php if (!$isPrimaireOuMaternel): ?>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Sujet</label>
+                        <input type="text" name="edit_sujet" id="modal_edit_sujet" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Méthode</label>
+                        <input type="text" name="edit_methode" id="modal_edit_methode" class="form-control">
+                    </div>
+                </div>
+                <?php endif; ?>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Matière dispensée</label>
                     <textarea name="edit_matieres" id="modal_edit_matieres" class="form-control" rows="3"
                         required></textarea>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Remarques / Devoirs</label>
-                    <input type="text" name="edit_note" id="modal_edit_note" class="form-control">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Remarques / Devoirs</label>
+                        <input type="text" name="edit_note" id="modal_edit_note" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Observation Prof</label>
+                        <input type="text" name="edit_observation_prof" id="modal_edit_observation_prof"
+                            class="form-control">
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Changer la pièce jointe (Optionnel)</label>
@@ -395,9 +461,22 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modal_edit_id').value = this.getAttribute('data-id');
             document.getElementById('modal_edit_date').value = this.getAttribute('data-date');
             document.getElementById('modal_edit_cours').value = this.getAttribute('data-cours');
+
+            const sujetInput = document.getElementById('modal_edit_sujet');
+            if (sujetInput) sujetInput.value = this.getAttribute('data-sujet');
+
+            const methodeInput = document.getElementById('modal_edit_methode');
+            if (methodeInput) methodeInput.value = this.getAttribute('data-methode');
+
+            const numFicheInput = document.getElementById('modal_edit_numero_fiche');
+            if (numFicheInput) numFicheInput.value = this.getAttribute('data-numerofiche');
+
             document.getElementById('modal_edit_matieres').value = this.getAttribute(
                 'data-matieres');
             document.getElementById('modal_edit_note').value = this.getAttribute('data-note');
+
+            const obsProfInput = document.getElementById('modal_edit_observation_prof');
+            if (obsProfInput) obsProfInput.value = this.getAttribute('data-observation_prof');
         });
     });
 });
