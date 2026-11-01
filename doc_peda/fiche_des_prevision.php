@@ -39,6 +39,9 @@ $enseignantId = (int)($prof['id'] ?? 0);
 $classeId     = get_current_classe(); 
 $previsionId  = (int)($_GET['id'] ?? 0);
 
+$uploadDir       = __DIR__ . '/../../uploads/attachement_prevision_classique/';
+$uploadWebPath   = '/uploads/attachement_prevision_classique/';
+
 // --- 1. CRÉATION / OUVERTURE D'UNE FICHE SPÉCIFIQUE ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_create_head'])) {
     $coursId       = (int)($_POST['cours_id'] ?? 0);
@@ -111,11 +114,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_add_lecon'])) 
                 $code = "C" . $pNum . "." . $nextIndex;
             }
 
+            // Gestion de l'upload du fichier attaché
+            $filename = null;
+            if (isset($_FILES['piece_jointe']['error']) && $_FILES['piece_jointe']['error'] === UPLOAD_ERR_OK) {
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                $tmpName   = $_FILES['piece_jointe']['tmp_name'];
+                $extension = pathinfo($_FILES['piece_jointe']['name'], PATHINFO_EXTENSION);
+                $filename  = 'prev_' . uniqid() . '.' . strtolower($extension);
+                move_uploaded_file($tmpName, $uploadDir . $filename);
+            }
+
             $stmt = $con->prepare("
-                INSERT INTO prevision_detail (prevision_id, periode, mois, semaine_libelle, savoirs_essentiels, code, observation, activites)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO prevision_detail (prevision_id, periode, mois, semaine_libelle, savoirs_essentiels, code, observation, activites, piece_jointe)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
-            $stmt->bind_param("isssssss", $targetPrevisionId, $periode, $mois, $semaine, $savoirsEssentiels, $code, $observation, $activites);
+            $stmt->bind_param("issssssss", $targetPrevisionId, $periode, $mois, $semaine, $savoirsEssentiels, $code, $observation, $activites, $filename);
             $stmt->execute();
             $success = "Prévision enregistrée avec le code " . e($code) . " !";
         } catch (Throwable $e) {
@@ -139,12 +154,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit_lecon']))
         $error = "Veuillez remplir tous les champs obligatoires pour la modification.";
     } else {
         try {
+            $stmtCheckF = $con->prepare("SELECT piece_jointe FROM prevision_detail WHERE id = ?");
+            $stmtCheckF->bind_param("i", $lineId);
+            $stmtCheckF->execute();
+            $resCheckF = $stmtCheckF->get_result()->fetch_assoc();
+            $filename = $resCheckF['piece_jointe'] ?? null;
+
+            if (isset($_FILES['edit_piece_jointe']['error']) && $_FILES['edit_piece_jointe']['error'] === UPLOAD_ERR_OK) {
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                if (!empty($filename) && file_exists($uploadDir . $filename)) {
+                    @unlink($uploadDir . $filename);
+                }
+                $tmpName   = $_FILES['edit_piece_jointe']['tmp_name'];
+                $extension = pathinfo($_FILES['edit_piece_jointe']['name'], PATHINFO_EXTENSION);
+                $filename  = 'prev_' . uniqid() . '.' . strtolower($extension);
+                move_uploaded_file($tmpName, $uploadDir . $filename);
+            }
+
             $stmt = $con->prepare("
                 UPDATE prevision_detail 
-                SET periode = ?, mois = ?, semaine_libelle = ?, savoirs_essentiels = ?, code = ?, observation = ?, activites = ?
+                SET periode = ?, mois = ?, semaine_libelle = ?, savoirs_essentiels = ?, code = ?, observation = ?, activites = ?, piece_jointe = ?
                 WHERE id = ?
             ");
-            $stmt->bind_param("sssssssi", $periode, $mois, $semaine, $savoirsEssentiels, $code, $observation, $activites, $lineId);
+            $stmt->bind_param("ssssssssi", $periode, $mois, $semaine, $savoirsEssentiels, $code, $observation, $activites, $filename, $lineId);
             $stmt->execute();
             $success = "Ligne de prévision mise à jour avec succès !";
         } catch (Throwable $e) {
@@ -157,6 +191,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit_lecon']))
 if (isset($_GET['delete_line'])) {
     $lineId = (int)$_GET['delete_line'];
     try {
+        $stmtCheckF = $con->prepare("SELECT piece_jointe FROM prevision_detail WHERE id = ?");
+        $stmtCheckF->bind_param("i", $lineId);
+        $stmtCheckF->execute();
+        $resCheckF = $stmtCheckF->get_result()->fetch_assoc();
+        if (!empty($resCheckF['piece_jointe']) && file_exists($uploadDir . $resCheckF['piece_jointe'])) {
+            @unlink($uploadDir . $resCheckF['piece_jointe']);
+        }
+
         $stmt = $con->prepare("DELETE FROM prevision_detail WHERE id = ?");
         $stmt->bind_param("i", $lineId);
         $stmt->execute();
@@ -273,12 +315,7 @@ require_once __DIR__ . '/../layout/navbar.php';
     user-select: none;
 }
 
-.sortable-header:hover {
-    /* background-color: #343a40 !important; */
-}
-
 @media print {
-
     .no-print,
     .btn,
     nav,
@@ -328,7 +365,6 @@ require_once __DIR__ . '/../layout/navbar.php';
             </span>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <!-- CHAMP DE RECHERCHE / FILTRE -->
             <input type="text" id="searchInput" class="form-control form-control-sm"
                 placeholder="🔍 Filtrer les résultats..." style="width: 200px;">
 
@@ -357,26 +393,22 @@ require_once __DIR__ . '/../layout/navbar.php';
                 <table class="table table-bordered table-hover align-middle text-center" id="mainTable">
                     <thead class="table small text-uppercase">
                         <tr>
-                            <!-- <th class="sortable-header" onclick="sortTable(0)" style="width: 11%;">COURS / MATIÈRE ⇕
-                            </th> -->
-                            <th class="sortable-header" onclick="sortTable(1)" style="width: 9%;">PÉRIODE ⇕</th>
-                            <th class="sortable-header" onclick="sortTable(2)" style="width: 9%;">MOIS ⇕</th>
-                            <th class="sortable-header" onclick="sortTable(3)" style="width: 10%;">SEMAINE ⇕</th>
-                            <th class="sortable-header" onclick="sortTable(4)" style="width: 11%;">BRANCHE/CAT... ⇕</th>
-                            <th class="sortable-header" onclick="sortTable(5)" style="width: 11%;">SOUS-BRANCHE/CAT... ⇕
-                            </th>
-                            <th class="sortable-header" onclick="sortTable(6)">SAVOIRS ESSENTIELS ⇕</th>
-                            <th class="sortable-header" onclick="sortTable(7)" style="width: 9%;">CODE / N° ⇕</th>
-                            <th class="sortable-header" onclick="sortTable(8)" style="width: 9%;">OBS ⇕</th>
+                            <th class="sortable-header" onclick="sortTable(0)" style="width: 9%;">PÉRIODE ⇕</th>
+                            <th class="sortable-header" onclick="sortTable(1)" style="width: 9%;">MOIS ⇕</th>
+                            <th class="sortable-header" onclick="sortTable(2)" style="width: 10%;">SEMAINE ⇕</th>
+                            <th class="sortable-header" onclick="sortTable(3)" style="width: 11%;">BRANCHE/CAT... ⇕</th>
+                            <th class="sortable-header" onclick="sortTable(4)" style="width: 11%;">SOUS-BRANCHE/CAT... ⇕</th>
+                            <th class="sortable-header" onclick="sortTable(5)">SAVOIRS ESSENTIELS ⇕</th>
+                            <th class="sortable-header" onclick="sortTable(6)" style="width: 9%;">CODE / N° ⇕</th>
+                            <th class="sortable-header" onclick="sortTable(7)" style="width: 9%;">OBS ⇕</th>
                             <th style="width: 18%;" class="no-print">#</th>
                         </tr>
                     </thead>
                     <tbody class="small" id="tableBody">
                         <?php if (empty($details)): ?>
                         <tr>
-                            <td colspan="10" class="text-muted py-4">
-                                Aucune prévision enregistrée. Cliquez sur <strong>"Créer/Ouvrir une Fiche"</strong> pour
-                                commencer.
+                            <td colspan="9" class="text-muted py-4">
+                                Aucune prévision enregistrée. Cliquez sur <strong>"Créer/Ouvrir une Fiche"</strong> pour commencer.
                             </td>
                         </tr>
                         <?php else: ?>
@@ -389,7 +421,6 @@ require_once __DIR__ . '/../layout/navbar.php';
                             $targetLessonFile = $isAnglais ? 'fiche_de_cours_anglais.php' : 'fiche_de_cours.php';
                         ?>
                         <tr>
-                            <!-- <td class="fw-bold bg-light text-start text-uppercase"><?= e($row['cours_intitule']) ?></td> -->
                             <td class="text-primary"><?= e($row['periode'] ?? '') ?></td>
                             <td><?= e($row['mois'] ?? '') ?></td>
                             <td class="text-danger"><?= e($row['semaine_libelle'] ?? '') ?></td>
@@ -409,6 +440,12 @@ require_once __DIR__ . '/../layout/navbar.php';
                                     <i class="bi bi-pencil-square"></i> Modifier
                                 </button>
 
+                                <?php if (!empty($row['piece_jointe'])): ?>
+                                <a href="<?= $uploadWebPath . e($row['piece_jointe']) ?>" target="_blank" class="btn btn-sm btn-info text-white me-1 mb-1" title="Voir le fichier attaché">
+                                    <i class="bi bi-paperclip"></i> Fichier
+                                </a>
+                                <?php endif; ?>
+
                                 <a href="<?= $targetLessonFile ?>?prevision_detail_id=<?= (int)$row['id'] ?>"
                                     class="btn btn-sm me-1 mb-1 <?= !empty($row['fiche_id']) ? 'btn-success' : 'btn-outline-primary' ?>"
                                     title="Fiche de cours">
@@ -427,51 +464,38 @@ require_once __DIR__ . '/../layout/navbar.php';
                             aria-hidden="true">
                             <div class="modal-dialog modal-lg text-start">
                                 <div class="modal-content">
-                                    <form method="POST">
+                                    <form method="POST" enctype="multipart/form-data">
                                         <input type="hidden" name="action_edit_lecon" value="1">
                                         <input type="hidden" name="line_id" value="<?= (int)$row['id'] ?>">
                                         <div class="modal-header bg-warning text-dark">
-                                            <h5 class="modal-title h6"><i class="bi bi-pencil-square me-1"></i> Modifier
-                                                la prévision</h5>
+                                            <h5 class="modal-title h6"><i class="bi bi-pencil-square me-1"></i> Modifier la prévision</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                                 aria-label="Fermer"></button>
                                         </div>
                                         <div class="modal-body">
                                             <div class="row g-3">
                                                 <div class="col-md-4">
-                                                    <label class="form-label small fw-semibold">Période <span
-                                                            class="text-danger">*</span></label>
+                                                    <label class="form-label small fw-semibold">Période <span class="text-danger">*</span></label>
                                                     <select name="periode" class="form-select form-select-sm" required>
-                                                        <option value="1ÈRE PERIODE"
-                                                            <?= ($row['periode'] == '1ÈRE PERIODE') ? 'selected' : '' ?>>
-                                                            1ÈRE PERIODE</option>
-                                                        <option value="2ÈME PERIODE"
-                                                            <?= ($row['periode'] == '2ÈME PERIODE') ? 'selected' : '' ?>>
-                                                            2ÈME PERIODE</option>
-                                                        <option value="3ÈME PERIODE"
-                                                            <?= ($row['periode'] == '3ÈME PERIODE') ? 'selected' : '' ?>>
-                                                            3ÈME PERIODE</option>
-                                                        <option value="4ÈME PERIODE"
-                                                            <?= ($row['periode'] == '4ÈME PERIODE') ? 'selected' : '' ?>>
-                                                            4ÈME PERIODE</option>
+                                                        <option value="1ÈRE PERIODE" <?= ($row['periode'] == '1ÈRE PERIODE') ? 'selected' : '' ?>>1ÈRE PERIODE</option>
+                                                        <option value="2ÈME PERIODE" <?= ($row['periode'] == '2ÈME PERIODE') ? 'selected' : '' ?>>2ÈME PERIODE</option>
+                                                        <option value="3ÈME PERIODE" <?= ($row['periode'] == '3ÈME PERIODE') ? 'selected' : '' ?>>3ÈME PERIODE</option>
+                                                        <option value="4ÈME PERIODE" <?= ($row['periode'] == '4ÈME PERIODE') ? 'selected' : '' ?>>4ÈME PERIODE</option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-4">
-                                                    <label class="form-label small fw-semibold">Mois <span
-                                                            class="text-danger">*</span></label>
+                                                    <label class="form-label small fw-semibold">Mois <span class="text-danger">*</span></label>
                                                     <input type="text" name="mois" class="form-control form-control-sm"
                                                         value="<?= e($row['mois']) ?>" required>
                                                 </div>
                                                 <div class="col-md-4">
-                                                    <label class="form-label small fw-semibold">Semaine <span
-                                                            class="text-danger">*</span></label>
+                                                    <label class="form-label small fw-semibold">Semaine <span class="text-danger">*</span></label>
                                                     <input type="text" name="semaine_libelle"
                                                         class="form-control form-control-sm"
                                                         value="<?= e($row['semaine_libelle']) ?>" required>
                                                 </div>
                                                 <div class="col-md-12">
-                                                    <label class="form-label small fw-semibold">Savoirs Essentiels
-                                                        (Contenu) <span class="text-danger">*</span></label>
+                                                    <label class="form-label small fw-semibold">Savoirs Essentiels (Contenu) <span class="text-danger">*</span></label>
                                                     <textarea name="savoirs_essentiels"
                                                         class="form-control form-control-sm" rows="3"
                                                         required><?= e($row['savoirs_essentiels']) ?></textarea>
@@ -480,8 +504,6 @@ require_once __DIR__ . '/../layout/navbar.php';
                                                 <?php if ($isAnglais): ?>
                                                 <div class="col-md-4">
                                                     <label class="form-label small fw-semibold">Activités</label>
-                                                    <br><small class="text-danger">N.B: Activités, c'est pour les cours
-                                                        d'anglais</small>
                                                     <input type="text" name="activites"
                                                         class="form-control form-control-sm"
                                                         value="<?= e($row['activites'] ?? '') ?>">
@@ -498,6 +520,13 @@ require_once __DIR__ . '/../layout/navbar.php';
                                                     <input type="text" name="observation"
                                                         class="form-control form-control-sm"
                                                         value="<?= e($row['observation'] ?? '') ?>">
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label class="form-label small fw-semibold">Attacher un fichier (Optionnel)</label>
+                                                    <input type="file" name="edit_piece_jointe" class="form-control form-control-sm">
+                                                    <?php if (!empty($row['piece_jointe'])): ?>
+                                                        <small class="text-muted">Fichier actuel : <a href="<?= $uploadWebPath . e($row['piece_jointe']) ?>" target="_blank"><?= e($row['piece_jointe']) ?></a></small>
+                                                    <?php endif; ?>
                                                 </div>
                                             </div>
                                         </div>
@@ -523,7 +552,7 @@ require_once __DIR__ . '/../layout/navbar.php';
     <div class="modal fade" id="modalAddLecon" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     <input type="hidden" name="action_add_lecon" value="1">
                     <div class="modal-header bg-dark text-white">
                         <h5 class="modal-title h6"><i class="bi bi-plus-circle me-1"></i> Ajouter une prévision</h5>
@@ -591,6 +620,10 @@ require_once __DIR__ . '/../layout/navbar.php';
                                 <input type="text" name="observation" class="form-control form-control-sm"
                                     placeholder="ex: En attente">
                             </div>
+                            <div class="col-md-12">
+                                <label class="form-label small fw-semibold">Attacher un fichier (Optionnel)</label>
+                                <input type="file" name="piece_jointe" class="form-control form-control-sm">
+                            </div>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -609,8 +642,7 @@ require_once __DIR__ . '/../layout/navbar.php';
                 <form method="POST">
                     <input type="hidden" name="action_create_head" value="1">
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title h6"><i class="bi bi-file-earmark-plus me-2"></i>Ouvrir ou Créer une fiche
-                            de matière</h5>
+                        <h5 class="modal-title h6"><i class="bi bi-file-earmark-plus me-2"></i>Ouvrir ou Créer une fiche de matière</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                             aria-label="Fermer"></button>
                     </div>
@@ -660,8 +692,6 @@ require_once __DIR__ . '/../layout/navbar.php';
 <!-- SCRIPTS DYNAMIQUES: MASQUAGE, RECHERCHE ET TRI -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-
-    // 1. MASQUAGE/AFFICHAGE DU CHAMP ACTIVITÉS
     const selectCours = document.getElementById('selectTargetPrevision');
     const containerActivites = document.getElementById('containerActivites');
 
@@ -683,7 +713,6 @@ document.addEventListener('DOMContentLoaded', function() {
         checkActiviteVisibility();
     }
 
-    // 2. FILTRAGE EN TEMPS RÉEL (RECHERCHE)
     const searchInput = document.getElementById('searchInput');
     const tableBody = document.getElementById('tableBody');
 
@@ -700,7 +729,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// 3. TRI DES COLONNES DU TABLEAU
 let sortDirections = {};
 
 function sortTable(columnIndex) {
@@ -708,7 +736,6 @@ function sortTable(columnIndex) {
     const tbody = table.querySelector("tbody");
     const rows = Array.from(tbody.querySelectorAll("tr"));
 
-    // Inverser la direction du tri pour la colonne
     sortDirections[columnIndex] = !sortDirections[columnIndex];
     const isAscending = sortDirections[columnIndex];
 
@@ -717,12 +744,8 @@ function sortTable(columnIndex) {
         const cellB = rowB.children[columnIndex]?.innerText.trim().toLowerCase() || '';
 
         return isAscending ?
-            cellA.localeCompare(cellB, undefined, {
-                numeric: true
-            }) :
-            cellB.localeCompare(cellA, undefined, {
-                numeric: true
-            });
+            cellA.localeCompare(cellB, undefined, { numeric: true }) :
+            cellB.localeCompare(cellA, undefined, { numeric: true });
     });
 
     rows.forEach(row => tbody.appendChild(row));

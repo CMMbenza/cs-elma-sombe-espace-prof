@@ -412,3 +412,6 @@ ADD COLUMN `sujet` varchar(255) DEFAULT NULL AFTER `cours_id`,
 ADD COLUMN `methode` text DEFAULT NULL AFTER `sujet`;
 ALTER TABLE `journal_classe` 
 ADD COLUMN `numero_fiche` varchar(50) DEFAULT NULL AFTER `id`;
+
+#01.11.2026
+ALTER TABLE prevision_detail ADD COLUMN piece_jointe VARCHAR(255) DEFAULT NULL;
