@@ -156,9 +156,9 @@ include __DIR__.'/../layout/navbar.php';
         <a href="mes_resumes.php" class="btn btn-primary btn-md">
             ⬅️ Retour à Mes Résumés
         </a>
-        <!-- <button onclick="window.print()" class="btn btn-primary btn-sm fw-bold">
-            🖨️ Imprimer la Fiche
-        </button> -->
+        <a href="journal_de_classe.php" class="btn btn-secondary btn-md">
+            ← Retour à mon journal de classe
+        </a>
     </div>
 
     <?php if (!empty($msgSuccess)): ?>

@@ -410,6 +410,10 @@ include __DIR__.'/../layout/navbar.php';
                                 <?php endif; ?>
                             </td>
                             <td class="text-end">
+                                <a href="cours_resume.php?journal=<?= (int)$f['id'] ?>"
+                                    class="btn btn-sm btn-primary me-1" title="Voir / Éditer le résumé">
+                                    📄 Résumé
+                                </a>
                                 <?php if (($f['statut'] ?? 'en attente') !== 'valider'): ?>
                                 <button type="button" class="btn btn-sm btn-outline-secondary me-1 btn-edit"
                                     data-id="<?= (int)$f['id'] ?>"

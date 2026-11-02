@@ -26,11 +26,12 @@ $stmtResumes = $con->prepare("
         r.piece_jointe,
         jc.id AS journal_id,
         jc.jour_date,
-        cl.description AS classe_nom,
+        CONCAT(cl.description, ' ' ,cy.description) AS classe_nom,
         co.intitule AS cours_nom
     FROM resume_cours r
     INNER JOIN journal_classe jc ON jc.id = r.journal_id
     INNER JOIN classe cl ON cl.id = jc.classe_id
+    INNER JOIN cycle cy ON cy.id = cl.cycle
     INNER JOIN cours co ON co.id = jc.cours_id
     WHERE jc.prof_id = ?
     ORDER BY jc.jour_date DESC
@@ -46,10 +47,11 @@ $stmtJournaux = $con->prepare("
         jc.id AS journal_id,
         jc.jour_date,
         jc.matieres,
-        cl.description AS classe_nom,
+        CONCAT(cl.description, ' ' ,cy.description) AS classe_nom,
         co.intitule AS cours_nom
     FROM journal_classe jc
     INNER JOIN classe cl ON cl.id = jc.classe_id
+    INNER JOIN cycle cy ON cy.id = cl.cycle
     INNER JOIN cours co ON co.id = jc.cours_id
     WHERE jc.prof_id = ?
     ORDER BY jc.jour_date DESC
@@ -63,12 +65,15 @@ include __DIR__.'/../layout/header.php';
 include __DIR__.'/../layout/navbar.php';
 ?>
 
-<div class="container py-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-bold m-0">📚 Mes Résumés de Cours</h4>
-        <button type="button" class="btn btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#modalSelectJournal">
+        <div><button type="button" class="btn btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#modalSelectJournal">
             ➕ Créer un résumé
         </button>
+        <a href="journal_de_classe.php" class="btn btn-secondary btn-md">
+            ← Retour à mon journal de classe
+        </a>    </div>
     </div>
 
     <!-- TABLEAU DES RÉSUMÉS -->

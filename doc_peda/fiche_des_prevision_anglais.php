@@ -179,12 +179,16 @@ require_once __DIR__ . '/../layout/navbar.php';
             <!-- Header section matching handwritten document -->
             <div class="row g-2 mb-3 fw-bold text-uppercase small">
                 <div class="col-md-6">
-                    <div>TEACHER: <span class="fw-normal"><?= e(($headerInfo['prenom'] ?? '') . ' ' . ($headerInfo['nom'] ?? '')) ?></span></div>
+                    <div class="d-none">TEACHER : <span
+                            class="fw-normal"><?= e(($headerInfo['prenom'] ?? '') . ' ' . ($headerInfo['nom'] ?? '')) ?></span>
+                    </div>
                     <div>COURSE: <span class="fw-normal"><?= e($headerInfo['cours_intitule']) ?></span></div>
                     <div>CLASS: <span class="fw-normal"><?= e($headerInfo['classe_nom']) ?></span></div>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <div>YEAR: <span class="fw-normal"><?= e($headerInfo['anneeScolaire'] ?? date('Y').'-'.(date('Y')+1)) ?></span></div>
+                    <div>YEAR : <span
+                            class="fw-normal"><?= e($headerInfo['anneeScolaire'] ?? date('Y').'-'.(date('Y')+1)) ?></span>
+                    </div>
                 </div>
             </div>
 
@@ -205,7 +209,8 @@ require_once __DIR__ . '/../layout/navbar.php';
                     <tbody>
                         <?php if (empty($details)): ?>
                         <tr>
-                            <td colspan="7" class="text-muted py-3">No detail records found for this forecast. Click "+ Add Line" above.</td>
+                            <td colspan="7" class="text-muted py-3">No detail records found for this forecast. Click "+
+                                Add Line" above.</td>
                         </tr>
                         <?php else: ?>
                         <?php foreach ($details as $row): ?>
@@ -217,63 +222,94 @@ require_once __DIR__ . '/../layout/navbar.php';
                             <td><?= e($row['activites'] ?? '') ?></td>
                             <td><?= e($row['observation'] ?? '') ?></td>
                             <td class="no-print">
+                                <a href="fiche_de_cours_anglais.php?prevision_detail_id=<?= (int)$row['id'] ?>"
+                                    class="btn btn-sm me-1 mb-1 <?= !empty($row['fiche_id']) ? 'btn-success' : 'btn-primary' ?>"
+                                    title="Fiche de cours">
+                                    <i class="bi bi-file-earmark-text"></i> Fiche détaillée
+                                </a>
                                 <!-- Bouton Modifier uniquement -->
-                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalEditLine<?= (int)$row['id'] ?>" title="Edit Line">
+                                <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#modalEditLine<?= (int)$row['id'] ?>" title="Edit Line">
                                     <i class="bi bi-pencil-square me-1"></i> Edit
                                 </button>
                             </td>
                         </tr>
 
                         <!-- MODAL : EDIT LINE (ENGLISH FORECAST) -->
-                        <div class="modal fade" id="modalEditLine<?= (int)$row['id'] ?>" tabindex="-1" aria-hidden="true">
+                        <div class="modal fade" id="modalEditLine<?= (int)$row['id'] ?>" tabindex="-1"
+                            aria-hidden="true">
                             <div class="modal-dialog modal-lg text-start">
                                 <div class="modal-content">
                                     <form method="POST">
                                         <input type="hidden" name="action_edit_line" value="1">
                                         <input type="hidden" name="line_id" value="<?= (int)$row['id'] ?>">
                                         <div class="modal-header bg-warning text-dark">
-                                            <h5 class="modal-title h6"><i class="bi bi-pencil-square me-1"></i> Edit Forecast Line</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            <h5 class="modal-title h6"><i class="bi bi-pencil-square me-1"></i> Edit
+                                                Forecast Line</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body">
                                             <div class="row g-3">
                                                 <div class="col-md-4">
                                                     <label class="form-label small fw-semibold">PERIOD</label>
                                                     <select name="periode" class="form-select form-select-sm">
-                                                        <option value="1ÈRE PERIODE" <?= ($row['periode'] == '1ÈRE PERIODE') ? 'selected' : '' ?>>1ÈRE PERIODE</option>
-                                                        <option value="2ÈME PERIODE" <?= ($row['periode'] == '2ÈME PERIODE') ? 'selected' : '' ?>>2ÈME PERIODE</option>
-                                                        <option value="3ÈME PERIODE" <?= ($row['periode'] == '3ÈME PERIODE') ? 'selected' : '' ?>>3ÈME PERIODE</option>
-                                                        <option value="4ÈME PERIODE" <?= ($row['periode'] == '4ÈME PERIODE') ? 'selected' : '' ?>>4ÈME PERIODE</option>
+                                                        <option value="1ÈRE PERIODE"
+                                                            <?= ($row['periode'] == '1ÈRE PERIODE') ? 'selected' : '' ?>>
+                                                            1ÈRE PERIODE</option>
+                                                        <option value="2ÈME PERIODE"
+                                                            <?= ($row['periode'] == '2ÈME PERIODE') ? 'selected' : '' ?>>
+                                                            2ÈME PERIODE</option>
+                                                        <option value="3ÈME PERIODE"
+                                                            <?= ($row['periode'] == '3ÈME PERIODE') ? 'selected' : '' ?>>
+                                                            3ÈME PERIODE</option>
+                                                        <option value="4ÈME PERIODE"
+                                                            <?= ($row['periode'] == '4ÈME PERIODE') ? 'selected' : '' ?>>
+                                                            4ÈME PERIODE</option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-4">
-                                                    <label class="form-label small fw-semibold">MONTHS <span class="text-danger">*</span></label>
-                                                    <input type="text" name="mois" class="form-control form-control-sm" value="<?= e($row['mois']) ?>" required>
+                                                    <label class="form-label small fw-semibold">MONTHS <span
+                                                            class="text-danger">*</span></label>
+                                                    <input type="text" name="mois" class="form-control form-control-sm"
+                                                        value="<?= e($row['mois']) ?>" required>
                                                 </div>
                                                 <div class="col-md-4">
-                                                    <label class="form-label small fw-semibold">WEEKS <span class="text-danger">*</span></label>
-                                                    <input type="text" name="semaine_libelle" class="form-control form-control-sm" value="<?= e($row['semaine_libelle']) ?>" required>
+                                                    <label class="form-label small fw-semibold">WEEKS <span
+                                                            class="text-danger">*</span></label>
+                                                    <input type="text" name="semaine_libelle"
+                                                        class="form-control form-control-sm"
+                                                        value="<?= e($row['semaine_libelle']) ?>" required>
                                                 </div>
                                                 <div class="col-md-12">
-                                                    <label class="form-label small fw-semibold">SUBJECTS (Content) <span class="text-danger">*</span></label>
-                                                    <textarea name="savoirs_essentiels" class="form-control form-control-sm" rows="3" required><?= e($row['savoirs_essentiels']) ?></textarea>
+                                                    <label class="form-label small fw-semibold">SUBJECTS (Content) <span
+                                                            class="text-danger">*</span></label>
+                                                    <textarea name="savoirs_essentiels"
+                                                        class="form-control form-control-sm" rows="3"
+                                                        required><?= e($row['savoirs_essentiels']) ?></textarea>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label small fw-semibold">CODE / N° FICHE</label>
-                                                    <input type="text" name="code" class="form-control form-control-sm" value="<?= e($row['code']) ?>" readonly>
+                                                    <input type="text" name="code" class="form-control form-control-sm"
+                                                        value="<?= e($row['code']) ?>" readonly>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label small fw-semibold">ACTIVITIES</label>
-                                                    <input type="text" name="activites" class="form-control form-control-sm" value="<?= e($row['activites'] ?? '') ?>">
+                                                    <input type="text" name="activites"
+                                                        class="form-control form-control-sm"
+                                                        value="<?= e($row['activites'] ?? '') ?>">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label small fw-semibold">OBSERVATION</label>
-                                                    <input type="text" name="observation" class="form-control form-control-sm" value="<?= e($row['observation'] ?? '') ?>">
+                                                    <input type="text" name="observation"
+                                                        class="form-control form-control-sm"
+                                                        value="<?= e($row['observation'] ?? '') ?>">
                                                 </div>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="button" class="btn btn-secondary btn-sm"
+                                                data-bs-dismiss="modal">Cancel</button>
                                             <button type="submit" class="btn btn-warning btn-sm">Update Line</button>
                                         </div>
                                     </form>
@@ -298,7 +334,8 @@ require_once __DIR__ . '/../layout/navbar.php';
                 <input type="hidden" name="action_add_line" value="1">
                 <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title h6"><i class="bi bi-plus-circle me-1"></i> Add Forecast Line (English)</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
@@ -312,28 +349,37 @@ require_once __DIR__ . '/../layout/navbar.php';
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-semibold">MONTHS <span class="text-danger">*</span></label>
-                            <input type="text" name="mois" class="form-control form-control-sm" placeholder="e.g. SEPTEMBER" required>
+                            <label class="form-label small fw-semibold">MONTHS <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" name="mois" class="form-control form-control-sm"
+                                placeholder="e.g. SEPTEMBER" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold">WEEKS <span class="text-danger">*</span></label>
-                            <input type="text" name="semaine_libelle" class="form-control form-control-sm" placeholder="e.g. Week 1 (07-11)" required>
+                            <input type="text" name="semaine_libelle" class="form-control form-control-sm"
+                                placeholder="e.g. Week 1 (07-11)" required>
                         </div>
                         <div class="col-md-12">
-                            <label class="form-label small fw-semibold">SUBJECTS (Content) <span class="text-danger">*</span></label>
-                            <textarea name="savoirs_essentiels" class="form-control form-control-sm" rows="3" placeholder="e.g. Greetings and Introductions" required></textarea>
+                            <label class="form-label small fw-semibold">SUBJECTS (Content) <span
+                                    class="text-danger">*</span></label>
+                            <textarea name="savoirs_essentiels" class="form-control form-control-sm" rows="3"
+                                placeholder="e.g. Greetings and Introductions" required></textarea>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold">CODE / N° FICHE (Auto)</label>
-                            <input type="text" name="code" class="form-control form-control-sm" placeholder="Auto (e.g. C1.1)" readonly>
+                            <input type="text" name="code" class="form-control form-control-sm"
+                                placeholder="Auto (e.g. C1.1)" readonly>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-semibold">ACTIVITIES <span class="text-danger">*</span></label>
-                            <input type="text" name="activites" class="form-control form-control-sm" placeholder="e.g. Group Roleplay" required>
+                            <label class="form-label small fw-semibold">ACTIVITIES <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" name="activites" class="form-control form-control-sm"
+                                placeholder="e.g. Group Roleplay" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label small fw-semibold">OBSERVATION</label>
-                            <input type="text" name="observation" class="form-control form-control-sm" placeholder="e.g. Pending">
+                            <input type="text" name="observation" class="form-control form-control-sm"
+                                placeholder="e.g. Pending">
                         </div>
                     </div>
                 </div>
