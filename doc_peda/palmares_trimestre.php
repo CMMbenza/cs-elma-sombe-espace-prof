@@ -126,8 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE id=?
             ");
 
+            // 19 paramètres : iis (3) + 12 d's (12) + s (1) + i (1) + s (1) + i (1) = 19
             $stmt->bind_param(
-                'iisddddddddddddsis',
+                'iisddddddddddddsisi',
                 $eleveId,
                 $classeId,
                 $trimestre,
@@ -181,8 +182,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 )
             ");
 
+            // 18 paramètres : iis (3) + 12 d's (12) + s (1) + i (1) + s (1) = 18
             $stmt->bind_param(
-                'iisddddddddddddsisis',
+                'iisdddddddddddsis',
                 $eleveId,
                 $classeId,
                 $trimestre,
