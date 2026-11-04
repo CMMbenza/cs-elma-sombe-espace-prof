@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit'])) {
         }
 
         $stmtUpd = $con->prepare("UPDATE journal_classe SET numero_fiche = ?, jour_date = ?, cours_id = ?, sujet = ?, methode = ?, matieres = ?, note = ?, observation_prof = ?, piece_jointe = ? WHERE id = ? AND prof_id = ?");
-        $stmtUpd->bind_param('ssissssii', $editNumFiche, $editDate, $coursId, $sujet, $methode, $matieres, $note, $observationProf, $filename, $idEdit, $agentId);
+        $stmtUpd->bind_param('ssissssssii', $editNumFiche, $editDate, $coursId, $sujet, $methode, $matieres, $note, $observationProf, $filename, $idEdit, $agentId);
         if ($stmtUpd->execute()) {
             $_SESSION['msg_success'] = "Leçon modifiée avec succès.";
         }

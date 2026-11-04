@@ -516,12 +516,12 @@ $niveauActifDefaut = $_SESSION['dernier_niveau'] ?? 'elementaire';
                     <button class="btn btn-dark w-100">Filtrer</button>
                 </div>
 
-                <div class="col-md-3 d-flex align-items-end">
+                <!-- <div class="col-md-3 d-flex align-items-end">
                     <a href="export_palmares.php?search=<?= urlencode($search) ?>&filter_trim=<?= urlencode($filterTrim) ?>"
                         class="btn btn-success w-100">
                         Export Excel
                     </a>
-                </div>
+                </div> -->
             </form>
         </div>
     </div>

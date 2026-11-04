@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action_edit'])) {
         }
 
         $stmtUpd = $con->prepare("UPDATE journal_classe SET numero_fiche = ?, jour_date = ?, cours_id = ?, sujet = ?, methode = ?, matieres = ?, note = ?, observation_prof = ?, piece_jointe = ? WHERE id = ? AND prof_id = ?");
-        $stmtUpd->bind_param('ssissssii', $editNumFiche, $editDate, $coursId, $sujet, $methode, $matieres, $note, $observationProf, $filename, $idEdit, $agentId);
+        $stmtUpd->bind_param('ssissssssii', $editNumFiche, $editDate, $coursId, $sujet, $methode, $matieres, $note, $observationProf, $filename, $idEdit, $agentId);
         if ($stmtUpd->execute()) {
             $_SESSION['msg_success'] = "Leçon mise à jour avec succès.";
         }
@@ -345,6 +345,7 @@ include __DIR__.'/../layout/navbar.php';
                                 </a>
                                 <?php if (($f['statut'] ?? 'en attente') !== 'valider'): ?>
                                 <button type="button" class="btn btn-sm btn-outline-secondary me-1 btn-edit"
+                                    data-cours-nom="<?= htmlspecialchars($f['cours_nom'], ENT_QUOTES) ?>"
                                     data-id="<?= (int)$f['id'] ?>"
                                     data-date="<?= htmlspecialchars($f['jour_date'], ENT_QUOTES) ?>"
                                     data-cours="<?= (int)$f['cours_id'] ?>"
@@ -460,7 +461,23 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             document.getElementById('modal_edit_id').value = this.getAttribute('data-id');
             document.getElementById('modal_edit_date').value = this.getAttribute('data-date');
-            document.getElementById('modal_edit_cours').value = this.getAttribute('data-cours');
+            const coursSelect = document.getElementById('modal_edit_cours');
+            const coursId = this.getAttribute('data-cours');
+            const coursNom = this.getAttribute('data-cours-nom');
+
+            if (coursSelect) {
+                let optionExiste = Array.from(coursSelect.options).some(option => option
+                    .value === coursId);
+
+                if (!optionExiste && coursId) {
+                    const nouvelleOption = document.createElement('option');
+                    nouvelleOption.value = coursId;
+                    nouvelleOption.textContent = coursNom;
+                    coursSelect.appendChild(nouvelleOption);
+                }
+
+                coursSelect.value = coursId;
+            }
 
             const sujetInput = document.getElementById('modal_edit_sujet');
             if (sujetInput) sujetInput.value = this.getAttribute('data-sujet');
