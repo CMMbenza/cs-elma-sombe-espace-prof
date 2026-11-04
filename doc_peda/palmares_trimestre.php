@@ -1,4 +1,5 @@
 <?php
+// doc_peda/palmares_trismestre.php
 declare(strict_types=1);
 
 require_once __DIR__.'/../includes/auth.php';
@@ -64,29 +65,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $eleveId   = (int)($_POST['eleve_id'] ?? 0);
     $trimestre = trim($_POST['trimestre'] ?? '');
+    
+    // Mémorisation du niveau sélectionné dans la session
+    $niveauActif = trim($_POST['niveau_actif'] ?? 'elementaire');
+    $_SESSION['dernier_niveau'] = $niveauActif;
 
     // Vérification de présence des champs
-    if ($eleveId <= 0 || $trimestre === '' || !isset($_POST['lang']) || !isset($_POST['math']) || !isset($_POST['cult'])) {
+    if ($eleveId <= 0 || $trimestre === '' || !isset($_POST['lang']) || !isset($_POST['anglais']) || !isset($_POST['math']) || !isset($_POST['cult'])) {
         $err = "Veuillez remplir tous les champs obligatoires (Élève, Session et Notes).";
     } else {
 
-        $lang = (float)$_POST['lang'];
-        $math = (float)$_POST['math'];
-        $cult = (float)$_POST['cult'];
+        $lang    = (float)$_POST['lang'];
+        $anglais = (float)$_POST['anglais'];
+        $math    = (float)$_POST['math'];
+        $cult    = (float)$_POST['cult'];
 
         /* MAX */
-        $maxLang = (float)($_POST['max_lang'] ?? 20);
-        $maxMath = (float)($_POST['max_math'] ?? 20);
-        $maxCult = (float)($_POST['max_cult'] ?? 20);
+        $maxLang    = (float)($_POST['max_lang'] ?? 20);
+        $maxAnglais = (float)($_POST['max_anglais'] ?? 20);
+        $maxMath    = (float)($_POST['max_math'] ?? 20);
+        $maxCult    = (float)($_POST['max_cult'] ?? 20);
 
-        $maxTotal   = (float)($_POST['max_total'] ?? 60);
+        $maxTotal   = (float)($_POST['max_total'] ?? 80);
         $maxPercent = (float)($_POST['max_percent'] ?? 100);
 
         $obs = trim($_POST['obs'] ?? '');
         $autorise = (int)($_POST['autorise'] ?? 1);
 
         /* TOTAL */
-        $total = $lang + $math + $cult;
+        $total = $lang + $anglais + $math + $cult;
 
         /* POURCENTAGE */
         $percent = $maxTotal > 0
@@ -102,9 +109,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     classe_id=?,
                     trimestre=?,
                     lang=?,
+                    anglais=?,
                     math=?,
                     cult=?,
                     max_lang=?,
+                    max_anglais=?,
                     max_math=?,
                     max_cult=?,
                     max_total=?,
@@ -118,14 +127,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
 
             $stmt->bind_param(
-                'iisddddddddddsisi',
+                'iisddddddddddddsis',
                 $eleveId,
                 $classeId,
                 $trimestre,
                 $lang,
+                $anglais,
                 $math,
                 $cult,
                 $maxLang,
+                $maxAnglais,
                 $maxMath,
                 $maxCult,
                 $maxTotal,
@@ -144,9 +155,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     classe_id,
                     trimestre,
                     lang,
+                    anglais,
                     math,
                     cult,
                     max_lang,
+                    max_anglais,
                     max_math,
                     max_cult,
                     max_total,
@@ -160,24 +173,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 )
                 VALUES (
                     ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
                     ?, ?, ?,
-                    ?, ?, ?,
-                    ?, ?, ?,
-                    ?, ?,
-                    ?, ?,
                     NOW()
                 )
             ");
 
             $stmt->bind_param(
-                'iisddddddddddsis',
+                'iisddddddddddddsisis',
                 $eleveId,
                 $classeId,
                 $trimestre,
                 $lang,
+                $anglais,
                 $math,
                 $cult,
                 $maxLang,
+                $maxAnglais,
                 $maxMath,
                 $maxCult,
                 $maxTotal,
@@ -286,6 +300,9 @@ function e($s){ return htmlspecialchars((string)$s,ENT_QUOTES,'UTF-8'); }
 function getOrdinalSuffix(int $rank): string {
     return $rank . '<sup>è</sup>';
 }
+
+// Niveau initial par défaut ou mémorisé
+$niveauActifDefaut = $_SESSION['dernier_niveau'] ?? 'elementaire';
 ?>
 
 <div class="container mt-3">
@@ -302,13 +319,28 @@ function getOrdinalSuffix(int $rank): string {
         </div>
         <div class="card-body">
 
-            <form method="post">
+            <form method="post" id="palmaresForm">
 
                 <!-- ID UPDATE -->
                 <input type="hidden" name="edit_id" value="<?= (int)($editData['id'] ?? 0) ?>">
 
                 <!-- AUTORISE -->
                 <input type="hidden" name="autorise" value="0">
+
+                <!-- INPUT CACHÉ POUR GARDER EN MÉMOIRE LE NIVEAU ACTIF -->
+                <input type="hidden" name="niveau_actif" id="niveau_actif" value="<?= e($niveauActifDefaut) ?>">
+
+                <!-- BOUTONS DE SÉLECTION DE NIVEAU (PILLS) -->
+                <div class="row mb-3 bg-light p-3 rounded border">
+                    <div class="col-12">
+                        <label class="form-label fw-bold text-primary mb-2">Sélectionner le Niveau (définit les maxima automatiques modifiables) :</label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-primary niveau-btn <?= $niveauActifDefaut === 'elementaire' ? 'active' : '' ?>" data-niveau="elementaire">Élémentaire</button>
+                            <button type="button" class="btn btn-outline-primary niveau-btn <?= $niveauActifDefaut === 'moyen' ? 'active' : '' ?>" data-niveau="moyen">Moyen</button>
+                            <button type="button" class="btn btn-outline-primary niveau-btn <?= $niveauActifDefaut === 'terminal' ? 'active' : '' ?>" data-niveau="terminal">Terminal</button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- ELEVE + TRIMESTRE -->
                 <div class="row mb-3">
@@ -350,35 +382,38 @@ function getOrdinalSuffix(int $rank): string {
                 <!-- MAXIMA -->
                 <div class="row mb-3">
 
-                    <div class="col-md-2">
+                    <div class="col">
                         <label class="form-label">MAX. LANG <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" min="0" name="max_lang"
-                            value="<?= e($editData['max_lang'] ?? 20) ?>" class="form-control"
-                            <?= $editData ? 'readonly' : '' ?> required>
+                        <input type="number" step="0.01" min="0" name="max_lang" id="max_lang"
+                            value="<?= e($editData['max_lang'] ?? 60) ?>" class="form-control" required>
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col">
+                        <label class="form-label">MAX. ANGL. <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0" name="max_anglais" id="max_anglais"
+                            value="<?= e($editData['max_anglais'] ?? 40) ?>" class="form-control" required>
+                    </div>
+
+                    <div class="col">
                         <label class="form-label">MAX. MATH <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" min="0" name="max_math"
-                            value="<?= e($editData['max_math'] ?? 20) ?>" class="form-control"
-                            <?= $editData ? 'readonly' : '' ?> required>
+                        <input type="number" step="0.01" min="0" name="max_math" id="max_math"
+                            value="<?= e($editData['max_math'] ?? 110) ?>" class="form-control" required>
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col">
                         <label class="form-label">MAX. CULT <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" min="0" name="max_cult"
-                            value="<?= e($editData['max_cult'] ?? 20) ?>" class="form-control"
-                            <?= $editData ? 'readonly' : '' ?> required>
+                        <input type="number" step="0.01" min="0" name="max_cult" id="max_cult"
+                            value="<?= e($editData['max_cult'] ?? 70) ?>" class="form-control" required>
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col">
                         <label class="form-label">MAX. TOTAL</label>
                         <input type="number" step="0.01" name="max_total" id="max_total"
-                            value="<?= e($editData['max_total'] ?? 60) ?>" readonly
+                            value="<?= e($editData['max_total'] ?? 280) ?>" readonly
                             class="form-control bg-light fw-bold">
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col">
                         <label class="form-label">MAX. %</label>
                         <input type="number" step="0.01" name="max_percent"
                             value="<?= e($editData['max_percent'] ?? 100) ?>" readonly
@@ -390,31 +425,37 @@ function getOrdinalSuffix(int $rank): string {
                 <!-- NOTES -->
                 <div class="row g-2">
 
-                    <div class="col-md-2">
+                    <div class="col">
                         <label class="form-label">LANG <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" min="0" name="lang" value="<?= e($editData['lang'] ?? '') ?>"
                             class="form-control" required>
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col">
+                        <label class="form-label">ANGLAIS <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" min="0" name="anglais" value="<?= e($editData['anglais'] ?? '') ?>"
+                            class="form-control" required>
+                    </div>
+
+                    <div class="col">
                         <label class="form-label">MATH <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" min="0" name="math" value="<?= e($editData['math'] ?? '') ?>"
                             class="form-control" required>
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col">
                         <label class="form-label">CULT <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" min="0" name="cult" value="<?= e($editData['cult'] ?? '') ?>"
                             class="form-control" required>
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col">
                         <label class="form-label">TOTAL</label>
                         <input type="text" id="total" value="<?= e($editData['total'] ?? '') ?>" readonly
                             class="form-control bg-light fw-bold">
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col">
                         <label class="form-label">Pourcentage %</label>
                         <input type="text" id="pourcentage" value="<?= e($editData['percent'] ?? '') ?>" readonly
                             class="form-control bg-light fw-bold">
@@ -499,6 +540,7 @@ function getOrdinalSuffix(int $rank): string {
                         <th>Élève</th>
                         <th>Session sc.</th>
                         <th>LANG</th>
+                        <th>ANGLAIS</th>
                         <th>MATH</th>
                         <th>CULT</th>
                         <th>Total</th>
@@ -514,6 +556,7 @@ function getOrdinalSuffix(int $rank): string {
                         <td class="text-start">Pondération</td>
                         <td>—</td>
                         <td>/<?= e($rows[0]['max_lang'] ?? 0) ?></td>
+                        <td>/<?= e($rows[0]['max_anglais'] ?? 0) ?></td>
                         <td>/<?= e($rows[0]['max_math'] ?? 0) ?></td>
                         <td>/<?= e($rows[0]['max_cult'] ?? 0) ?></td>
                         <td>/<?= e($rows[0]['max_total'] ?? 0) ?></td>
@@ -523,7 +566,7 @@ function getOrdinalSuffix(int $rank): string {
 
                     <?php if (!$rows): ?>
                     <tr>
-                        <td colspan="11" class="text-muted py-4">Aucun résultat trouvé.</td>
+                        <td colspan="12" class="text-muted py-4">Aucun résultat trouvé.</td>
                     </tr>
                     <?php else: ?>
 
@@ -551,6 +594,7 @@ function getOrdinalSuffix(int $rank): string {
 
                         <!-- NOTES -->
                         <td><?= number_format((float)$r['lang'], 2) ?></td>
+                        <td><?= number_format((float)$r['anglais'], 2) ?></td>
                         <td><?= number_format((float)$r['math'], 2) ?></td>
                         <td><?= number_format((float)$r['cult'], 2) ?></td>
 
@@ -602,19 +646,63 @@ function getOrdinalSuffix(int $rank): string {
 </div>
 
 <script>
-function calculer() {
-    let lang = parseFloat(document.querySelector('[name="lang"]').value) || 0;
-    let math = parseFloat(document.querySelector('[name="math"]').value) || 0;
-    let cult = parseFloat(document.querySelector('[name="cult"]').value) || 0;
+// Configuration des maxima par niveau
+const niveauxMaxima = {
+    elementaire: { lang: 60, anglais: 40, math: 110, cult: 70 },
+    moyen:       { lang: 65, anglais: 55, math: 90,  cult: 90 },
+    terminal:    { lang: 70, anglais: 50, math: 100, cult: 90 }
+};
 
-    let maxLang = parseFloat(document.querySelector('[name="max_lang"]').value) || 0;
-    let maxMath = parseFloat(document.querySelector('[name="max_math"]').value) || 0;
-    let maxCult = parseFloat(document.querySelector('[name="max_cult"]').value) || 0;
+// Gestion des clics sur les boutons de niveau (style pills)
+document.querySelectorAll('.niveau-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Retirer la classe active de tous les boutons
+        document.querySelectorAll('.niveau-btn').forEach(b => b.classList.remove('active', 'btn-primary', 'text-white'));
+        document.querySelectorAll('.niveau-btn').forEach(b => b.classList.add('btn-outline-primary'));
+
+        // Activer le bouton cliqué
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('active', 'btn-primary', 'text-white');
+
+        let niv = this.getAttribute('data-niveau');
+        document.getElementById('niveau_actif').value = niv;
+
+        if (niveauxMaxima[niv]) {
+            document.getElementById('max_lang').value    = niveauxMaxima[niv].lang;
+            document.getElementById('max_anglais').value = niveauxMaxima[niv].anglais;
+            document.getElementById('max_math').value    = niveauxMaxima[niv].math;
+            document.getElementById('max_cult').value    = niveauxMaxima[niv].cult;
+            calculer();
+        }
+    });
+});
+
+// Appliquer le style actif au chargement si un bouton l'a déjà
+document.addEventListener('DOMContentLoaded', function() {
+    const actifInput = document.getElementById('niveau_actif').value;
+    document.querySelectorAll('.niveau-btn').forEach(btn => {
+        if(btn.getAttribute('data-niveau') === actifInput) {
+            btn.classList.remove('btn-outline-primary');
+            btn.classList.add('active', 'btn-primary', 'text-white');
+        }
+    });
+});
+
+function calculer() {
+    let lang    = parseFloat(document.querySelector('[name="lang"]').value) || 0;
+    let anglais = parseFloat(document.querySelector('[name="anglais"]').value) || 0;
+    let math    = parseFloat(document.querySelector('[name="math"]').value) || 0;
+    let cult    = parseFloat(document.querySelector('[name="cult"]').value) || 0;
+
+    let maxLang    = parseFloat(document.querySelector('[name="max_lang"]').value) || 0;
+    let maxAnglais = parseFloat(document.querySelector('[name="max_anglais"]').value) || 0;
+    let maxMath    = parseFloat(document.querySelector('[name="max_math"]').value) || 0;
+    let maxCult    = parseFloat(document.querySelector('[name="max_cult"]').value) || 0;
 
     let maxPercent = parseFloat(document.querySelector('[name="max_percent"]').value) || 100;
 
-    let maxTotal = maxLang + maxMath + maxCult;
-    let total = lang + math + cult;
+    let maxTotal = maxLang + maxAnglais + maxMath + maxCult;
+    let total = lang + anglais + math + cult;
 
     let percent = 0;
     if (maxTotal > 0) {
@@ -626,6 +714,7 @@ function calculer() {
     document.getElementById('pourcentage').value = percent.toFixed(2);
 }
 
+// Écoute des modifications sur tous les champs (notes et maxima modifiables)
 document.querySelectorAll('input').forEach(el => {
     el.addEventListener('input', calculer);
 });

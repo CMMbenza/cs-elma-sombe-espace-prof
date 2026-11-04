@@ -114,7 +114,7 @@ autosaveStatus.className = "text-success";
 autosaveStatus.innerHTML = "❌ Erreur de sauvegarde";
 autosaveStatus.className = "text-danger";
 </script>
-<div class="container py-4">
+<div class="container-fluid py-4">
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -182,7 +182,7 @@ autosaveStatus.className = "text-danger";
                         <label class="form-label">Format</label>
                         <select name="format" id="format" class="form-select" required>
                             <option value="QCM">QCM</option>
-                            <!-- <option value="RQ">RQ</option> -->
+                            <option value="RQ">Question Réponse</option>
                             <option value="PJ">Pièce jointe (PJ)</option>
                         </select>
                     </div>

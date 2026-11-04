@@ -301,9 +301,9 @@ include __DIR__.'/../layout/navbar.php';
                             <tr>
                                 <th style="width: 11%;" class="col-secondaire">N° Fiche</th>
                                 <th style="width: 15%;">Cours / Branche <span class="text-danger">*</span></th>
-                                <th class="col-secondaire">Sujet</th>
+                                <th class="col-secondaire">Sujet de l'interrogation</th>
                                 <th class="col-secondaire">Méthode</th>
-                                <th>Matière dispensée <span class="text-danger">*</span></th>
+                                <th>Matière à dispensée <span class="text-danger">*</span></th>
                                 <th>Remarques / Obs.</th>
                                 <th>Obs. Prof</th>
                                 <th>Support / PJ</th>
